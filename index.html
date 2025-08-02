@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Image Viewer</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🖼️</text></svg>">
-  <script type="module" crossorigin src="/assets/index-phEkyitk.js"></script>
+  <script type="module" crossorigin src="/assets/index-BAg1BqP3.js"></script>
   <link rel="stylesheet" crossorigin href="/assets/index-Bkyfm0H_.css">
 </head>
 <body>
@@ -16,17 +17,17 @@
     hosting provider like GitHub Pages, Netlify, Vercel, or an S3 bucket.
 
     Usage:
-    Append the URL of an image to the site's address.
-    Example: https://your-site.com/https://i.imgur.com/your-image.jpeg
+    Provide an image URL via the 'url' hash parameter.
+    Example: https://your-site.com/#url=https://i.imgur.com/your-image.jpeg
   -->
   <div id="app-container">
     <div id="loader" class="hidden"></div>
     <div id="error-container" class="hidden">
       <p id="error-message"></p>
       <p class="usage-info">
-        <strong>Usage:</strong> Append a direct image URL to this page's path.
+        <strong>Usage:</strong> Provide a direct image URL using a hash parameter.
         <br>
-        Example: <code>.../https://i.imgur.com/r3u917w.jpeg</code>
+        Example: <code>.../#url=https://i.imgur.com/r3u917w.jpeg</code>
       </p>
     </div>
     <div id="image-viewer" class="hidden">
