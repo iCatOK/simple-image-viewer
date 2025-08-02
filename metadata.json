@@ -1,0 +1,4 @@
+{
+  "name": "Vanilla JS Image Viewer",
+  "description": "A single-page application to view and zoom images provided via URL path. Supports mouse and touch gestures."
+}
