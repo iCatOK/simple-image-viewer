@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a1a;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .viewer-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at center, #2a2a2a 0%, #1a1a1a 100%);
+        }
+
+        .image-container {
+            position: relative;
+            max-width: 95vw;
+            max-height: 95vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .main-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+            cursor: grab;
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .main-image:active {
+            cursor: grabbing;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 20px;
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+        }
+
+        .zoom-info {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .error-message {
+            text-align: center;
+            color: #ff6b6b;
+            font-size: 18px;
+            background: rgba(255, 107, 107, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+            color: #888;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #fff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .url-input {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .url-input input {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 20px;
+            width: 300px;
+            font-size: 14px;
+        }
+
+        .url-input input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .url-input button {
+            background: #007acc;
+            border: none;
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+
+        .url-input button:hover {
+            background: #005999;
+        }
+
+        @media (max-width: 768px) {
+            .url-input {
+                position: relative;
+                top: auto;
+                left: auto;
+                margin: 20px;
+                width: calc(100% - 40px);
+            }
+
+            .url-input input {
+                width: 200px;
+            }
+
+            .controls {
+                flex-wrap: wrap;
+                bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="viewer-container">
+        <div class="url-input">
+            <input type="text" id="imageUrl" placeholder="Paste image URL here...">
+            <button onclick="loadImageFromUrl()">Load</button>
+        </div>
+
+        <div class="zoom-info" id="zoomInfo">100%</div>
+
+        <div class="image-container" id="imageContainer">
+            <div class="loading" id="loading" style="display: none;">
+                <div class="spinner"></div>
+                Loading image...
+            </div>
+            <img class="main-image" id="mainImage" style="display: none;" alt="Viewed image">
+            <div class="error-message" id="errorMessage" style="display: none;">
+                Failed to load image. Please check the URL and try again.
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" onclick="zoomIn()">Zoom In (+)</button>
+            <button class="control-btn" onclick="zoomOut()">Zoom Out (-)</button>
+            <button class="control-btn" onclick="resetZoom()">Reset (R)</button>
+            <button class="control-btn" onclick="fitToScreen()">Fit Screen (F)</button>
+            <button class="control-btn" onclick="actualSize()">Actual Size (A)</button>
+            <button class="control-btn" onclick="rotateImage()">Rotate (↻)</button>
+        </div>
+    </div>
+
+    <script>
+        let currentZoom = 1;
+        let currentRotation = 0;
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        let imagePosition = { x: 0, y: 0 };
+
+        const mainImage = document.getElementById('mainImage');
+        const zoomInfo = document.getElementById('zoomInfo');
+        const loading = document.getElementById('loading');
+        const errorMessage = document.getElementById('errorMessage');
+        const urlInput = document.getElementById('imageUrl');
+
+        // Load image from URL parameter on page load
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const imageUrl = urlParams.get('img') || urlParams.get('url') || urlParams.get('src');
+            
+            if (imageUrl) {
+                urlInput.value = decodeURIComponent(imageUrl);
+                loadImageFromUrl();
+            }
+        });
+
+        function showLoading() {
+            loading.style.display = 'block';
+            mainImage.style.display = 'none';
+            errorMessage.style.display = 'none';
+        }
+
+        function hideLoading() {
+            loading.style.display = 'none';
+        }
+
+        function showError() {
+            errorMessage.style.display = 'block';
+            mainImage.style.display = 'none';
+            hideLoading();
+        }
+
+        function showImage() {
+            mainImage.style.display = 'block';
+            errorMessage.style.display = 'none';
+            hideLoading();
+        }
+
+        function loadImageFromUrl() {
+            const url = urlInput.value.trim();
+            if (!url) return;
+
+            showLoading();
+            resetTransform();
+
+            mainImage.onload = function() {
+                showImage();
+                fitToScreen();
+            };
+
+            mainImage.onerror = function() {
+                showError();
+            };
+
+            mainImage.src = url;
+        }
+
+        function updateTransform() {
+            mainImage.style.transform = `
+                translate(${imagePosition.x}px, ${imagePosition.y}px) 
+                scale(${currentZoom}) 
+                rotate(${currentRotation}deg)
+            `;
+            zoomInfo.textContent = Math.round(currentZoom * 100) + '%';
+        }
+
+        function resetTransform() {
+            currentZoom = 1;
+            currentRotation = 0;
+            imagePosition = { x: 0, y: 0 };
+            updateTransform();
+        }
+
+        function zoomIn() {
+            currentZoom = Math.min(currentZoom * 1.2, 10);
+            updateTransform();
+        }
+
+        function zoomOut() {
+            currentZoom = Math.max(currentZoom / 1.2, 0.1);
+            updateTransform();
+        }
+
+        function resetZoom() {
+            resetTransform();
+        }
+
+        function fitToScreen() {
+            if (!mainImage.complete) return;
+            
+            const containerRect = document.getElementById('imageContainer').getBoundingClientRect();
+            const scaleX = (containerRect.width * 0.9) / mainImage.naturalWidth;
+            const scaleY = (containerRect.height * 0.9) / mainImage.naturalHeight;
+            
+            currentZoom = Math.min(scaleX, scaleY, 1);
+            imagePosition = { x: 0, y: 0 };
+            updateTransform();
+        }
+
+        function actualSize() {
+            currentZoom = 1;
+            imagePosition = { x: 0, y: 0 };
+            updateTransform();
+        }
+
+        function rotateImage() {
+            currentRotation = (currentRotation + 90) % 360;
+            updateTransform();
+        }
+
+        // Mouse drag functionality
+        mainImage.addEventListener('mousedown', function(e) {
+            isDragging = true;
+            dragStart.x = e.clientX - imagePosition.x;
+            dragStart.y = e.clientY - imagePosition.y;
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            
+            imagePosition.x = e.clientX - dragStart.x;
+            imagePosition.y = e.clientY - dragStart.y;
+            updateTransform();
+        });
+
+        document.addEventListener('mouseup', function() {
+            isDragging = false;
+        });
+
+        // Mouse wheel zoom
+        document.addEventListener('wheel', function(e) {
+            if (!mainImage.complete || mainImage.style.display === 'none') return;
+            
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            currentZoom = Math.max(0.1, Math.min(10, currentZoom * delta));
+            updateTransform();
+        }, { passive: false });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.target.tagName === 'INPUT') return;
+            
+            switch(e.key.toLowerCase()) {
+                case '=':
+                case '+':
+                    zoomIn();
+                    break;
+                case '-':
+                    zoomOut();
+                    break;
+                case 'r':
+                    resetZoom();
+                    break;
+                case 'f':
+                    fitToScreen();
+                    break;
+                case 'a':
+                    actualSize();
+                    break;
+                case ' ':
+                    rotateImage();
+                    e.preventDefault();
+                    break;
+            }
+        });
+
+        // Handle enter key in URL input
+        urlInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                loadImageFromUrl();
+            }
+        });
+
+        // Touch support for mobile
+        let touchStartDistance = 0;
+        let touchStartZoom = 1;
+
+        mainImage.addEventListener('touchstart', function(e) {
+            if (e.touches.length === 2) {
+                touchStartDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                touchStartZoom = currentZoom;
+            } else if (e.touches.length === 1) {
+                isDragging = true;
+                dragStart.x = e.touches[0].clientX - imagePosition.x;
+                dragStart.y = e.touches[0].clientY - imagePosition.y;
+            }
+            e.preventDefault();
+        });
+
+        document.addEventListener('touchmove', function(e) {
+            if (e.touches.length === 2) {
+                const currentDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                currentZoom = Math.max(0.1, Math.min(10, touchStartZoom * (currentDistance / touchStartDistance)));
+                updateTransform();
+            } else if (e.touches.length === 1 && isDragging) {
+                imagePosition.x = e.touches[0].clientX - dragStart.x;
+                imagePosition.y = e.touches[0].clientY - dragStart.y;
+                updateTransform();
+            }
+            e.preventDefault();
+        }, { passive: false });
+
+        document.addEventListener('touchend', function() {
+            isDragging = false;
+        });
+    </script>
+</body>
+</html>
